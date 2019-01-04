@@ -1,0 +1,131 @@
+module lecturehall(led,clk,out1,out2,tempSVolt,tempLed,echo,trig);
+output reg[6:0]out1,out2; //output numbers
+input clk; //clk coming from the FPGA board
+reg clk2, redlightBulb, greenlightBulb; //slower clock and lightbulb regs
+reg[150:0] cycle; 
+reg[100:0] cycleSensor;//used in the always block for the clock
+output reg led;
+reg [7:0] humanCount; //counts the number of human beings in the hall
+parameter max=5;
+input tempSVolt;
+
+output tempLed;  
+reg tempLed;
+output  trig;
+reg trig;
+input echo;
+reg [40:0] triggerClk;
+
+/* To initialize parameters */
+initial
+	begin
+		clk2=1'b0;
+		triggerClk=0;
+		trig=1'b0;
+		out1<=7'b1000000;
+		out2<=7'b1000000;
+		cycle<=151'b0;
+		cycleSensor<=101'b0;
+		humanCount<=8'b0;
+		redlightBulb<=1'b0;
+		greenlightBulb<=1'b0;
+		led<=1'b0;
+		tempLed<=1'b0;
+		//echo<=1'b0;
+	end
+	
+/* To initialize parameters */
+		
+/*        Clock Module         */
+always@(posedge clk)
+	begin
+		if(cycle==25000000)
+			begin
+				clk2=~clk2;
+				cycle=0;
+			end
+		else
+			cycle=cycle+1;
+		if(triggerClk==3250000)
+			begin
+				trig=~trig;
+				triggerClk=0;
+			end
+		else
+			triggerClk=triggerClk+1;
+		cycleSensor=cycleSensor+1;
+	end
+/*        Clock Module         */
+
+/*        Light Bulbs Module         */
+always@(humanCount)
+	begin
+		if(humanCount==max)
+			begin
+				redlightBulb=1'b1;
+				greenlightBulb=1'b0;
+				led=1'b1;
+			end
+		else if(humanCount<max)
+			begin
+				//led=1'b0;
+				redlightBulb=1'b0;
+				greenlightBulb=1'b1;
+			end
+	end
+/*        Light Bulbs Module         */
+
+/*        Ultrasonic Sensor Module         */
+always@(posedge echo) 
+	begin
+		if(cycleSensor>378000 && cycleSensor<380000)
+			begin
+				humanCount=humanCount;
+				
+			end
+		else
+			begin
+				humanCount=humanCount+1;
+				//led=1'b1;
+			end
+		cycleSensor<=101'b0;
+	end
+/*        Ultrasonic Sensor Module         */
+//always@(posedge humanCount)
+//	begin
+//		out1<=7'b1000000;
+//		case(humanCount)
+//					 8'b00000000: out1 <= 7'b1000000;
+// 		          8'b00000001: out1 <= 7'b1111001;
+// 		          8'b00000010: out1 <= 7'b0100100; 
+// 		          8'b00000011: out1 <= 7'b0110000; 
+// 		          8'b00000100: out1 <= 7'b0011001; 
+// 		          8'b00000101: out1 <= 7'b0010010;
+// 		          8'b00000110: out1 <= 7'b0000010;
+// 		          8'b00000111: out1 <= 7'b1111000;
+// 		          8'b00001000: out1 <= 7'b0000000;
+// 		          8'b00001001: out1 <= 7'b0010000;
+// 		          default: out1 <= 7'b1000000;
+// 		    endcase
+//	end
+//always @ (posedge clk)
+//	begin
+//		if(humanCount>0)
+//			led=1'b1;
+//		else
+//			led=1'b0;
+//	end
+always@(tempSVolt)
+	begin
+		if(2+tempSVolt*100<18)
+			tempLed<=0;
+		else if(2+tempSVolt*100>25)
+			tempLed<=1;
+	end
+
+always@(posedge trig	)
+	cycleSensor<=101'b0;
+		
+			
+		
+endmodule
